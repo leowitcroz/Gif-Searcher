@@ -69,9 +69,56 @@ class _HomePageState extends State<HomePage> {
               style: const TextStyle(color: Colors.white, fontSize: 18),
               textAlign: TextAlign.center,
             ),
+          ),
+          Expanded(
+            child: FutureBuilder(
+                future: _getGifs(),
+                builder: (context, snapshot) {
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.waiting:
+                    case ConnectionState.none:
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        alignment: Alignment.center,
+                        child: const CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          strokeWidth: 5.0,
+                        ),
+                      );
+                    default:
+                      if (snapshot.hasError) {
+                        return Container();
+                      } else {
+                        return _createGifTable(context, snapshot);
+                      }
+                  }
+                }),
           )
         ],
       ),
     );
   }
+}
+
+Widget _createGifTable(BuildContext context, AsyncSnapshot snapshot) {
+  return GridView.builder(
+    padding: const EdgeInsets.all(10),
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+    ),
+    itemCount: snapshot.data['data'].length,
+    itemBuilder: (context, index) {
+      return GestureDetector(
+        child: Image.network(
+          snapshot.data['data'][index]['images']['fixed_height']['url'],
+          height: 300,
+          fit: BoxFit.cover,
+        ),
+      );
+    },
+  );
 }
