@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:gif_seacher/ui/gif_page.dart';
+import 'package:transparent_image/transparent_image.dart';
+import 'package:share/share.dart';
 import 'package:http/http.dart' as http;
 
 class HomePage extends StatefulWidget {
@@ -10,11 +13,12 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  String _search = '';
-  int offSet = 0;
+String _search = '';
+int offSet = 0;
 
+class _HomePageState extends State<HomePage> {
   Future<Map> _getGifs() async {
+    print(_search);
     http.Response response;
     if (_search == '') {
       dynamic url = Uri.parse(
@@ -22,8 +26,9 @@ class _HomePageState extends State<HomePage> {
 
       response = await http.get(url);
     } else {
+      print('to aqui');
       dynamic url = Uri.parse(
-          'https://api.giphy.com/v1/gifs/search?api_key=jUFn3dN5f13C1LIouV0QrTR9jKgW9PML&q=${_search}limit=20&offset=${offSet}&rating=g&lang=en&bundle=messaging_non_clips');
+          'https://api.giphy.com/v1/gifs/search?api_key=jUFn3dN5f13C1LIouV0QrTR9jKgW9PML&q=$_search&limit=19&offset=$offSet&rating=g&lang=en&bundle=messaging_non_clips');
       response = await http.get(url);
     }
 
@@ -68,6 +73,11 @@ class _HomePageState extends State<HomePage> {
               ),
               style: const TextStyle(color: Colors.white, fontSize: 18),
               textAlign: TextAlign.center,
+              onSubmitted: (text) {
+                setState(() {
+                  _search = text;
+                });
+              },
             ),
           ),
           Expanded(
@@ -100,25 +110,82 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
 
-Widget _createGifTable(BuildContext context, AsyncSnapshot snapshot) {
-  return GridView.builder(
-    padding: const EdgeInsets.all(10),
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-    ),
-    itemCount: snapshot.data['data'].length,
-    itemBuilder: (context, index) {
-      return GestureDetector(
-        child: Image.network(
-          snapshot.data['data'][index]['images']['fixed_height']['url'],
-          height: 300,
-          fit: BoxFit.cover,
-        ),
-      );
-    },
-  );
+  int _getCount(List data) {
+    if (_search == '') {
+      return data.length;
+    } else {
+      return data.length + 1;
+    }
+  }
+
+  int _load(offset) {
+    return offset += 19;
+  }
+
+  Widget _createGifTable(BuildContext context, AsyncSnapshot snapshot) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(10),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: _getCount(snapshot.data['data']),
+      itemBuilder: (context, index) {
+        if (_search == '' || index < snapshot.data['data'].length) {
+          return GestureDetector(
+            child: FadeInImage.memoryNetwork(
+              image: snapshot.data['data'][index]['images']['fixed_height']
+                  ['url'],
+              height: 300,
+              fit: BoxFit.cover,
+              placeholder: kTransparentImage,
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return GifPage(gifData: snapshot.data['data'][index]);
+                  },
+                ),
+              );
+            },
+            onLongPress: () {
+              Share.share(snapshot.data['data'][index]['images']['fixed_height']
+                  ['url']);
+            },
+          );
+        } else {
+          return Container(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  offSet += 19;
+                });
+              },
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add,
+                    color: Colors.white,
+                    size: 70,
+                  ),
+                  Text(
+                    'Carregar mais...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        }
+      },
+    );
+  }
 }
